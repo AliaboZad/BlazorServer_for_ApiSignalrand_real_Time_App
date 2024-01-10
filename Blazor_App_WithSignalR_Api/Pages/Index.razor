@@ -1,0 +1,92 @@
+﻿@page "/"
+@using Blazor_App_WithSignalR_Api.Data;
+@using Microsoft.AspNetCore.SignalR.Client;
+
+<PageTitle>Index</PageTitle>
+
+<h1>Hello, world!</h1>
+
+Welcome to your new app.
+
+Message from here 
+
+<ul>
+
+    @foreach (var mess in _message)
+    {
+        <li>@mess</li>
+
+    }
+
+
+</ul>
+
+<h3>Incoming Data of Employee</h3>
+<table class="table">
+    <thead>
+        <tr>
+            <th scope="col">Id</th>
+            <th scope="col">Name</th>
+            <th scope="col">Address</th>
+           
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var emp in _emp)
+        {
+            <tr>
+                <td>@emp.Id</td>
+                <td>@emp.Name</td>
+                <td>@emp.Address</td>
+            </tr>
+        }
+        
+    </tbody>
+</table>
+
+
+
+@code{
+    private HubConnection? _hubConnection ;
+    private  List<string> _message = new();
+    private  List<Employee>? _emp;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        _emp = new List<Employee>();
+
+        //signalhub
+        _hubConnection = new HubConnectionBuilder()
+                            .WithUrl("https://localhost:7100/signalhub")
+                            .Build();
+
+        _hubConnection.On<string>("ReceiveMessage", message =>
+        {
+            _message.Add(message);
+
+            InvokeAsync(StateHasChanged);
+
+        });
+
+        _hubConnection.On<Employee>("ReceiveEmployee", Emp =>
+        {
+            _emp.Add(Emp);
+            InvokeAsync(StateHasChanged);
+
+        });
+
+
+        await _hubConnection.StartAsync();
+
+
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+    }
+}
